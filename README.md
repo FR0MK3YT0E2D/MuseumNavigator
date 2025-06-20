@@ -43,8 +43,6 @@ roslaunch museum_nav bringup.launch
 
 此指令會同時啟動 Gazebo 模擬器，RViz，AMCL 定位，地圖伺服器，Move Base 導航模組與前後端橋接節點。
 
----
-
 ## 控制面板操作
 
 1. 開啟 `web/index.html`，使用瀏覽器開啟網頁
@@ -78,8 +76,3 @@ museum_nav/
 * 展區以地圖中心 (0,0) 為原點，格點間距為 1 公尺，採用九宮格分區
 * 若導航失敗可檢查是否被障礙物擋住，或 costmap 尚未正確建立
 * 若模型異常或高度過低，可修改 `urdf/museum_robot.urdf.xacro` 中參數
-
-## 延伸功能建議
-* 可加入語音廣播模組，提供語音導覽
-* 可整合 QR Code 感應，自動避障演算法或人臉辨識等技術
-* 可根據時間或人流動態調整路徑與展覽說明策略
