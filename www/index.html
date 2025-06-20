@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>博物館導覽機器人控制台</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- roslibjs CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/roslibjs/1.1.0/roslib.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start py-10 px-4">
+  <div class="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-6">
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">博物館導覽機器人控制台</h1>
+
+    <!-- 控制按鈕 -->
+    <div id="buttons" class="grid grid-cols-3 gap-4 mb-6">
+      <button onclick="gotoRegion(1)" class="btn">區域 1</button>
+      <button onclick="gotoRegion(2)" class="btn">區域 2</button>
+      <button onclick="gotoRegion(3)" class="btn">區域 3</button>
+      <button onclick="gotoRegion(4)" class="btn">區域 4</button>
+      <button onclick="gotoRegion(5)" class="btn">區域 5</button>
+      <button onclick="gotoRegion(6)" class="btn">區域 6</button>
+      <button onclick="gotoRegion(7)" class="btn">區域 7</button>
+      <button onclick="gotoRegion(8)" class="btn">區域 8</button>
+      <button onclick="gotoRegion(9)" class="btn">區域 9</button>
+    </div>
+
+    <!-- 狀態與導覽 -->
+    <div class="text-lg space-y-2">
+      <p>✅ 當前區域：<span id="currentRegion" class="font-semibold text-blue-500">未知</span></p>
+      <p>📢 導覽資訊：<span id="guideText" class="font-medium text-gray-700">請選擇一個展區</span></p>
+    </div>
+  </div>
+
+  <script>
+    const ros = new ROSLIB.Ros({ url: "ws://172.23.206.148:9090" });
+
+    ros.on('connection', () => console.log("Connected to ROSBridge"));
+    ros.on('error', (err) => console.error("ROSBridge error", err));
+    ros.on('close', () => console.warn("ROSBridge connection lost"));
+
+    const regionTargets = {
+      1: { x: 0.5, y: 0.5, theta: 0 },
+      2: { x: 0.5, y: -0.5, theta: 0 },
+      3: { x: 0.5, y: -1.5, theta: 0 },
+      4: { x: -0.5, y: 0.5, theta: 0 },
+      5: { x: -0.5, y: -0.5, theta: 0 },
+      6: { x: -0.5, y: -1.5, theta: 0 },
+      7: { x: -1.5, y: 0.5, theta: 0 },
+      8: { x: -1.5, y: -0.5, theta: 0 },
+      9: { x: -1.5, y: -1.5, theta: 0 }
+    };
+
+    const guideTexts = {
+      1: "區域1：史前時代展廳 - 展出千萬年化石與壁畫。",
+      2: "區域2：古文明廳 - 介紹埃及與兩河流域文明。",
+      3: "區域3：秦漢兵馬俑展廳。",
+      4: "區域4：唐宋藝術展廳。",
+      5: "區域5：近現代歷史廳。",
+      6: "區域6：科學與工業革命展。",
+      7: "區域7：海洋文化展。",
+      8: "區域8：原住民族廳。",
+      9: "區域9：數位互動科技區。"
+    };
+
+    let currentTargetRegion = null;
+
+    const goalTopic = new ROSLIB.Topic({
+      ros: ros,
+      name: "/move_base_simple/goal",
+      messageType: "geometry_msgs/PoseStamped"
+    });
+
+    function gotoRegion(regionId) {
+      const target = regionTargets[regionId];
+      currentTargetRegion = regionId;
+
+      const yaw = target.theta;
+      const quat = {
+        x: 0,
+        y: 0,
+        z: Math.sin(yaw / 2),
+        w: Math.cos(yaw / 2)
+      };
+
+      const goalMsg = new ROSLIB.Message({
+        header: { frame_id: "map" },
+        pose: {
+          position: { x: target.x, y: target.y, z: 0 },
+          orientation: quat
+        }
+      });
+
+      goalTopic.publish(goalMsg);
+      console.log(`已送出前往「區域 ${regionId}」的指令...`);
+      document.getElementById("guideText").innerText = `已送出前往「區域 ${regionId}」的指令...`;
+    }
+
+    const statusTopic = new ROSLIB.Topic({
+      ros: ros,
+      name: "/move_base/status",
+      messageType: "actionlib_msgs/GoalStatusArray"
+    });
+
+    statusTopic.subscribe((msg) => {
+      if (!currentTargetRegion) return;
+      const statusList = msg.status_list;
+      if (statusList.length > 0) {
+        const latest = statusList[statusList.length - 1];
+        if (latest.status === 3) {
+          document.getElementById("guideText").innerText = guideTexts[currentTargetRegion] || "已抵達！";
+          currentTargetRegion = null;
+        }
+      }
+    });
+
+    const regionSub = new ROSLIB.Topic({
+      ros: ros,
+      name: "/current_region",
+      messageType: "std_msgs/Int32"
+    });
+
+    regionSub.subscribe((msg) => {
+      document.getElementById("currentRegion").innerText = msg.data;
+    });
+  </script>
+
+  <style>
+    .btn {
+      @apply bg-blue-500 text-white font-semibold py-2 px-4 rounded-xl shadow hover:bg-blue-600 transition duration-200;
+    }
+  </style>
+</body>
+</html>

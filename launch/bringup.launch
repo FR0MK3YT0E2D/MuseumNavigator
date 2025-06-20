@@ -1,0 +1,31 @@
+<launch>
+  <!-- Set TurtleBot3 model -->
+  <arg name="model" default="burger"/>
+  <env name="TURTLEBOT3_MODEL" value="$(arg model)" />
+
+  <!-- Load map -->
+  <arg name="map_file" default="$(find museum_nav)/map/museum.yaml"/>
+
+  <!-- Launch Navigation -->
+  <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+    <arg name="map_file" value="$(arg map_file)"/>
+  </include>
+
+  <!-- Launch Gazebo World -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_world.world"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+
+  <!-- Spawn the robot into Gazebo with correct z and yaw to avoid flipping -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'" />
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+      args="-param robot_description -urdf -model turtlebot3_burger -x 0.5 -y 0.5 -z 0.0 -Y 1.57"
+      output="screen" />
+
+
+
+  <!-- Start region detector -->
+  <node name="region_detector" pkg="museum_nav" type="region_detector.py" output="screen" />
+  <node pkg="museum_nav" type="goal_bridge.py" name="goal_bridge" output="screen" />
+</launch>

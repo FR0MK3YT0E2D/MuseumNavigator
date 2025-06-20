@@ -1,0 +1,12 @@
+<launch>
+  <!-- 啟動 rosbridge_websocket -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+
+  <!-- 啟動 web_video_server（可選，用於影像串流） -->
+  <!-- <node name="web_video_server" pkg="web_video_server" type="web_video_server" output="screen" /> -->
+
+  <!-- 啟動簡易 HTTP server 提供 index.html -->
+  <node name="museum_web_server" pkg="roswww" type="roswww" output="screen">
+    <param name="port" value="8000"/>
+  </node>
+</launch>
